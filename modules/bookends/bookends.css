@@ -1,0 +1,35 @@
+#loader.ds-bookend-opening{background:transparent;gap:0;transition:opacity .45s;pointer-events:none;--boot:1}
+.ds-bookend-top{position:absolute;top:32px;left:36px;font:11px var(--mono,monospace);letter-spacing:.26em;color:#c5d7f5}.ds-bookend-top span{margin-left:24px;color:#758bac;font-size:9px}
+.ds-bookend-boot{opacity:var(--boot);text-align:center;font:clamp(40px,7vw,78px) var(--mono,monospace);letter-spacing:.16em;color:#e3efff;text-shadow:0 0 25px #4d82c866}.ds-bookend-boot p{font:9px var(--mono,monospace);letter-spacing:.28em;color:#8ca0bc;margin-top:28px}.ds-bookend-cursor{display:inline-block;width:.075em;height:.85em;vertical-align:-.06em;background:#84cfff;animation:ds-cursor .7s step-end infinite;box-shadow:0 0 16px #72aaff}
+.ds-bookend-depth{position:absolute;bottom:38px;left:36px;font:12px var(--mono,monospace);letter-spacing:.16em;color:#bccce3}.ds-bookend-depth small{font-size:10px;color:#8293aa}.ds-bookend-skip{position:absolute;right:36px;bottom:28px;pointer-events:auto;min-height:44px;padding:10px 18px;border:1px solid #526e9266;background:#050c1c99;color:#d4e3f8;border-radius:30px;cursor:pointer;font-size:12px;letter-spacing:.12em}.ds-bookend-skip:hover{background:#182842}.ds-bookend-done{opacity:0!important;visibility:hidden;pointer-events:none!important}.ds-bookend-done button{pointer-events:none}
+.ds-bookend-intro h1{font-size:clamp(32px,5.2vw,70px);letter-spacing:.07em;line-height:1.5}.ds-bookend-intro .lede{color:#9eafc7;line-height:1.9}.ds-bookend-intro .kicker{color:#8ba8d6}
+.ds-bookend-finale.slogan{justify-content:flex-end;padding-bottom:13vh}.ds-bookend-finale .slogan-cn{text-shadow:none;font-size:clamp(36px,5.4vw,72px);letter-spacing:.15em}.ds-bookend-finale .slogan-en{font-size:11px;letter-spacing:.32em;color:#94a9cc}.ds-bookend-finale .fin-kicker{color:#bcc9e0}.ds-bookend-finale .logo-lockup{filter:none}.ds-bookend-finale .logo-whale{filter:none;max-height:90px}.ds-bookend-finale.info-stage{justify-content:center;padding-top:0}.ds-bookend-finale .fine{color:#8392ab;line-height:1.9;max-width:600px}.ds-bookend-finale .tagline{font-size:18px;color:#c2d2ee}.ds-bookend-replay{position:fixed;left:28px;bottom:20px;z-index:8;color:#a3b7d4;background:#050c1c99;border:1px solid #526e9244;border-radius:24px;padding:10px 16px;min-height:44px;cursor:pointer;font-size:11px}.opening .ds-bookend-replay{display:none}.ds-bookend-return{cursor:pointer;font:inherit}
+@keyframes ds-cursor{50%{opacity:0}}
+@media(max-width:760px){.ds-bookend-top{top:24px;left:22px}.ds-bookend-top span{display:none}.ds-bookend-depth{left:22px;bottom:34px}.ds-bookend-intro h1{font-size:34px}.ds-bookend-finale.slogan{padding-bottom:18vh}.ds-bookend-finale .slogan-cn{font-size:34px;letter-spacing:.08em}.ds-bookend-finale.info-stage .fine{font-size:11px;padding:0 16px}.ds-bookend-replay{left:16px;bottom:14px}}
+@media(prefers-reduced-motion:reduce){.ds-bookend-cursor{animation:none}.ds-bookend-opening{transition:none}}
+
+/* Micro-light opening. All animation values come from the paused host clock. */
+#loader.ds-bookend-opening{--question:1;--question-scale:1;--seed:0;--veil:1;--iris:0px;--journey:0;--depth:0;--arrival:0;--reveal:0}
+.ds-opening-veil{position:absolute;inset:0;background:#02040d;opacity:var(--veil);mask-image:radial-gradient(circle at 50% 50%,transparent calc(var(--iris) - 20px),#000 var(--iris));pointer-events:none}
+.ds-opening-question{position:relative;z-index:2;font:300 clamp(23px,3.1vw,40px)/1.5 var(--serif,serif);letter-spacing:.12em;color:#eef3ff;white-space:nowrap;opacity:var(--question);transform:scale(var(--question-scale));text-shadow:0 0 28px #5b7cff22}
+.ds-opening-measure{visibility:hidden;display:block}
+.ds-opening-typed{position:absolute;left:0;top:0;white-space:nowrap}
+.ds-opening-cursor{position:absolute;top:.23em;width:2px;height:1.05em;background:#6e8aff;box-shadow:0 0 9px #5b7cff88,0 0 24px #5b7cff33}
+.ds-opening-seed{position:absolute;left:50%;top:50%;width:3px;height:3px;border-radius:50%;transform:translate(-50%,-50%) scale(var(--seed-scale,1));opacity:var(--seed);background:#dbeaff;box-shadow:0 0 6px #92b6ff,0 0 22px 4px #5b7cff66;pointer-events:none}
+.ds-opening-journey{position:absolute;left:0;right:0;top:44%;text-align:center;opacity:var(--journey);transform:translateY(var(--journey-shift,0px));pointer-events:none;color:#eef3ff;text-shadow:0 2px 18px #02040d,0 0 40px #02040d}
+.ds-opening-journey span{font:300 clamp(23px,3vw,38px)/1.6 var(--serif,serif);letter-spacing:.2em}
+.ds-opening-journey small{display:block;margin-top:18px;font:9px var(--mono,monospace);letter-spacing:.35em;color:#b6cbe5}
+.ds-opening-journey::before{content:'';position:absolute;inset:-40px 12%;z-index:-1;background:radial-gradient(ellipse,#02040d8a,transparent 70%)}
+.ds-opening-arrival{position:absolute;bottom:7vh;text-align:center;opacity:var(--arrival);color:#d7e3f9;pointer-events:none}
+.ds-opening-arrival small{font:10px var(--mono,monospace);letter-spacing:.28em;color:#97b5d9}
+.ds-opening-arrival p{font:300 clamp(16px,1.8vw,23px)/1.7 var(--serif,serif);letter-spacing:.12em;margin-top:14px}
+.ds-bookend-opening .ds-bookend-depth{top:32px;bottom:auto;left:auto;right:36px;opacity:var(--depth)}
+.ds-bookend-opening 
+html.opened.at-opening-start .ds-bookend-replay{opacity:1;pointer-events:auto}
+@media(max-width:760px){.ds-opening-question{font-size:clamp(21px,5.5vw,32px);letter-spacing:.07em}.ds-bookend-opening .ds-bookend-depth{top:26px;right:22px}.ds-opening-arrival{bottom:16vh}.ds-opening-arrival p{font-size:15px;letter-spacing:.07em}}
+
+html.opening{overflow:hidden}html.opening .panel,html.opening .hint{opacity:0!important;visibility:hidden!important;pointer-events:none!important}html.opening #grain{opacity:.12}.ds-bookend-skip:focus-visible,.ds-bookend-return:focus-visible,.ds-bookend-replay:focus-visible{outline:2px solid #a2dcff;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.ds-bookend-replay{display:none}}
+
+.ds-bookend-finale .slogan-cn::after{content:'';display:inline-block;width:3px;height:.72em;margin-left:.12em;background:#9bd8ff;opacity:0}.ds-bookend-finale.on .slogan-cn::after{animation:ds-final-cursor 1.4s step-end 2 both}@keyframes ds-final-cursor{0%,40%{opacity:1}41%,100%{opacity:0}}
+.static .panel{position:relative!important;inset:auto!important;visibility:visible!important;opacity:1!important;transform:none!important;pointer-events:auto!important;min-height:70vh;padding:12vh 24px}.static #scroll{height:auto!important}.static .hud,.static .rail,.static .hint{display:none}.static body{min-height:100vh!important}

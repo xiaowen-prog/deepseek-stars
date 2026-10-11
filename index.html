@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>深度求索 · 群星闪耀时</title>
+<meta name="description" content="一次不间断的下潜：人工智能的十二个关键时刻，最深处是 DeepSeek。个人独立制作的非官方作品。">
+<link rel="icon" type="image/png" href="assets/deepseek-favicon.png">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="src/style.css">
+<link rel="stylesheet" href="modules/bookends/bookends.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/three.module.min.js",
+  "three/addons/": "./vendor/three/addons/"
+} }
+</script>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/ScrollTrigger.min.js"></script>
+<link rel="stylesheet" href="src/revisions.css">
+<link rel="stylesheet" href="src/visual-system.css">
+</head>
+<body>
+<canvas id="gl" aria-hidden="true"></canvas>
+<div id="grain" aria-hidden="true"></div>
+<div id="vignette" aria-hidden="true"></div>
+
+<div id="loader" role="status" aria-live="polite">
+  <div class="ld-ring" aria-hidden="true"></div>
+  <div class="ld-dot"></div>
+  <div class="ld-depth mono"><span id="ld-num">0000</span> m</div>
+  <div class="ld-txt">正在下潜</div>
+</div>
+
+<header class="hud">
+  <div class="brand">
+    <img class="brand-mark" src="assets/deepseek-whale-color.svg" alt="" width="18" height="18"/>
+    <span class="brand-en mono">DEEPSEEK ·</span>
+    <span class="brand-cn">深度求索</span>
+  </div>
+  <div class="hud-mid mono" aria-hidden="true"></div>
+  <div class="depth mono" aria-hidden="true"><em class="dl">DEPTH</em><span id="depth">00200</span><em>M</em></div>
+</header>
+<nav class="rail" aria-label="时刻进度"><ol id="rail"></ol></nav>
+
+<div id="fx" aria-hidden="true"></div>
+<div id="handoff-dot" aria-hidden="true"></div>
+<div id="handoff-line" aria-hidden="true"></div>
+<button type="button" id="hold" class="hint act" data-k="12"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17"/><circle class="p" cx="20" cy="20" r="17"/></svg><span class="lbl">长按 · 让它思考</span><small>（点击 · Enter）</small></button>
+<button type="button" id="holdCursor" class="hint act" data-k="11"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17"/><circle class="p" cx="20" cy="20" r="17"/></svg><span class="lbl">点击 · 打开对话之海</span><small>（点击 · Enter）</small></button>
+<button type="button" id="tap" class="hint act" data-k="10"><span class="lbl">点击 · 落子</span><small>（Enter）</small></button>
+
+<main id="scroll">
+  <section class="intro panel ds-bookend-intro" data-k="0">
+    <p class="kicker mono"><span class="k-dot"></span>AI · 1950 — 2025</p>
+    <h1>机器，能思考吗？</h1>
+    <div class="lede-rule" aria-hidden="true"></div>
+    <p class="lede">十二个关键时刻。<br>向下滚动，进入故事。</p>
+    <div class="cue" aria-hidden="true"><i></i></div>
+  </section>
+  <div id="cards"></div>
+  <section class="finale ds-bookend-finale unified-ending panel" data-k="15" aria-label="终章">
+    <p class="fin-kicker mono">DEEPSEEK · 深度求索</p>
+    <h2 class="slogan-cn">探索未知之境</h2>
+    <p class="slogan-en mono">INTO THE UNKNOWN</p>
+    <div class="ending-details">
+      <p class="ending-description">从一个问题出发，让探索继续。<br>在线对话、API 接入与开源研究，让探索继续走向实践。</p>
+      <nav class="ending-links" aria-label="DeepSeek 官方入口">
+        <a href="https://chat.deepseek.com/" target="_blank" rel="noopener">开始对话 <span>网页版 ↗</span></a>
+        <a href="https://www.deepseek.com/" target="_blank" rel="noopener">DeepSeek 官网 <span>产品与研究 ↗</span></a>
+        <a href="https://platform.deepseek.com/" target="_blank" rel="noopener">API 开放平台 <span>开发者控制台 ↗</span></a>
+        <a href="https://api-docs.deepseek.com/" target="_blank" rel="noopener">API 文档 <span>接入与使用指南 ↗</span></a>
+        <a href="https://github.com/deepseek-ai" target="_blank" rel="noopener">开源社区 <span>模型与代码 ↗</span></a>
+        <a href="https://www.deepseek.com/news/r1-0528/" target="_blank" rel="noopener">认识 DeepSeek-R1 <span>推理模型研究 ↗</span></a>
+      </nav>
+      <button class="ending-replay ds-bookend-return mono" type="button">重新下潜 ↑</button>
+    </div>
+    <p class="fine">本页为个人独立制作的非官方作品，与 DeepSeek / 深度求索官方无关。</p>
+  </section>
+  <div class="ending-cue" aria-hidden="true"><span id="ending-phase">一点微光</span><i></i><small>继续向下 · 让星辰汇聚</small></div>
+</main>
+<noscript><p class="noscript">本页需要 JavaScript。</p></noscript>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
