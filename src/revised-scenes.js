@@ -38,8 +38,12 @@ export function reviseBuilders(builders,{THREE,INTERACT,MOBILE,REDUCED,STORY,cam
  };
  builders[1]=()=>{
   const g=new THREE.Group(),figures=[],featured=[];
-  const table=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,.16,72),basic(0x15223d));g.add(table);
-  const rim=new THREE.Mesh(new THREE.TorusGeometry(2.35,.027,8,96),basic(0x9dbaeb));rim.rotation.x=Math.PI/2;rim.position.y=.1;g.add(rim);
+  const matte=color=>new THREE.MeshStandardMaterial({color,roughness:.78,metalness:.12});
+  g.add(new THREE.AmbientLight(0xb8cbe4,1.15));
+  const keyLight=new THREE.PointLight(0xd8e8ff,30,18,2);keyLight.position.set(-3,6,5);g.add(keyLight);
+  const fillLight=new THREE.PointLight(0x819fc9,10,15,2);fillLight.position.set(4,3,-4);g.add(fillLight);
+  const table=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,.24,72),matte(0x1d304b));table.position.y=-.04;g.add(table);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(2.35,.027,8,96),basic(0x7995ba));rim.rotation.x=Math.PI/2;rim.position.y=.1;g.add(rim);
   // A few quiet paper sheets suggest a workshop without crowding the people.
   for(let i=0;i<4;i++){const a=paperAngle(i);const sheet=new THREE.Mesh(new THREE.PlaneGeometry(.48,.62),basic(0x657b99,.6));sheet.rotation.x=-Math.PI/2;sheet.rotation.z=a;sheet.position.set(Math.cos(a)*1.65,.095,Math.sin(a)*1.65);g.add(sheet);}
   function paperAngle(i){return .3+i*Math.PI/2;}
@@ -49,9 +53,10 @@ export function reviseBuilders(builders,{THREE,INTERACT,MOBILE,REDUCED,STORY,cam
   for(let i=0;i<10;i++){
    const a=Math.PI/10+i*Math.PI/5,person=new THREE.Group(),key=keySeats.indexOf(i),special=key>=0;
    person.position.set(Math.cos(a)*3.05,0,Math.sin(a)*3.05);
-   const body=new THREE.Mesh(new THREE.CylinderGeometry(.16,.32,.83,24),basic(special?0x778bac:0x354861));body.position.y=.49;
-   const head=sphere(special?.23:.20,special?0xd7c29e:0x8292ad);head.position.y=1.13;
+   const body=new THREE.Mesh(new THREE.CylinderGeometry(.16,.32,.83,24),matte(special?0x778bac:0x354861));body.position.y=.49;
+   const head=new THREE.Mesh(new THREE.SphereGeometry(special?.23:.20,24,20),matte(special?0xd7c29e:0x8292ad));head.position.y=1.13;
    const base=new THREE.Mesh(new THREE.CylinderGeometry(.37,.4,.10,24),basic(special?0x617798:0x26384f));person.add(body,head,base);
+   const contact=new THREE.Mesh(new THREE.CircleGeometry(.49,32),basic(0x020812,.42));contact.rotation.x=-Math.PI/2;contact.position.y=-.061;person.add(contact);
    if(special){person.userData.person=key;const halo=new THREE.Mesh(new THREE.TorusGeometry(.38,.019,6,40),basic(0xc3ac88,.7));halo.rotation.x=Math.PI/2;halo.position.y=.07;person.add(halo);featured[key]=head;}
    g.add(person);figures.push({person,body,head,key});
   }
@@ -122,7 +127,7 @@ export function reviseBuilders(builders,{THREE,INTERACT,MOBILE,REDUCED,STORY,cam
   const g=new THREE.Group(),nodes=[],edges=[];
   const positions=[[0,2.5,0],[-1.9,1,0],[1.9,1,0],[-2.8,-.7,0],[-1,-.7,0],[1,-.7,0],[2.8,-.7,0]];
   positions.forEach((p,i)=>{const n=sphere(i?.16:.23,0x607080);n.position.set(...p);g.add(n);nodes.push(n);});
-  for(let i=1;i<7;i++){const parent=Math.floor((i-1)/2);const edge=line([positions[parent],positions[i]],0x657486,.7);g.add(edge);edges.push(edge);}
+  for(let i=1;i<7;i++){const parent=Math.floor((i-1)/2);const from=new THREE.Vector3(...positions[parent]),to=new THREE.Vector3(...positions[i]);const edge=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,from.distanceTo(to),8),basic(0x657486,.7));edge.position.copy(from).add(to).multiplyScalar(.5);edge.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),to.clone().sub(from).normalize());g.add(edge);edges.push(edge);}
   const title=label('IF → THEN','#c6d6e7',.65);title.position.y=3.25;g.add(title);
   const good=label('MATCH / 答案','#8eb9a6',.48);good.position.set(-2.8,-1.35,0);g.add(good);
   const dead=label('规则止步','#d4ae79',.48);dead.position.set(2.8,-1.35,0);g.add(dead);
@@ -131,6 +136,8 @@ export function reviseBuilders(builders,{THREE,INTERACT,MOBILE,REDUCED,STORY,cam
   const stop=line([[3.16,-.87,.07],[3.16,-.53,.07]],0xefbc79,.9);outside.add(stop);
   const question=label('?', '#ebcfaa',1.1);question.position.set(4.2,-.7,.1);outside.add(question);
   const note=label('规则之外的新问题','#b6a183',.75);note.position.set(3.7,-1.95,0);outside.add(note);
+  const answerHalo=new THREE.Mesh(new THREE.RingGeometry(.26,.3,48),basic(0x9cd5c6,0));answerHalo.material.side=THREE.DoubleSide;answerHalo.position.set(-2.8,-.7,-.03);g.add(answerHalo);
+  const stopHalo=new THREE.Mesh(new THREE.RingGeometry(.26,.3,48),basic(0xd5b386,0));stopHalo.material.side=THREE.DoubleSide;stopHalo.position.set(2.8,-.7,-.03);g.add(stopHalo);
   const ruleReduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const traveler=sphere(.14,0xcfe9ff);g.add(traveler);let ruleMode=null,ruleStart=0,wasActive=false,lastReplay=-1;
   const success=label('✓  找到答案','#a8ccbf',.65);success.position.set(-2.8,-1.35,.1);g.add(success);good.visible=false;
@@ -138,7 +145,7 @@ export function reviseBuilders(builders,{THREE,INTERACT,MOBILE,REDUCED,STORY,cam
    const mode=INTERACT.ruleMode||'auto',active=l>.55;
    if(ruleMode!==mode||lastReplay!==(INTERACT.ruleReplay||0)||(active&&!wasActive)){ruleMode=mode;ruleStart=t;lastReplay=INTERACT.ruleReplay||0;}wasActive=active;
    const age=ruleReduced?7:Math.max(0,t-ruleStart),isNew=mode==='new'||(mode==='auto'&&age>=4.2);
-   const knownDone=mode==='auto'?age>=2.5:mode==='known'&&age>=2.5;
+   const knownDone=mode==='auto'?age>=2.5:mode==='new'||mode==='known'&&age>=2.5;
    const p=ruleReduced?1:Math.min(1,Math.max(0,(age-(isNew&&mode==='auto'?4.2:0))/2.5));
    const path=isNew?[0,2,6]:[0,1,3],segment=Math.min(1,Math.floor(p*2)),v=Math.min(1,p*2-segment);
    traveler.position.fromArray(positions[path[segment]]).lerp(new THREE.Vector3(...positions[path[segment+1]]),smooth(v));
@@ -147,7 +154,13 @@ export function reviseBuilders(builders,{THREE,INTERACT,MOBILE,REDUCED,STORY,cam
    edges.forEach((edge,i)=>{const current=passed(i+1),retained=knownDone&&[1,3].includes(i+1);edge.material.color.set(current?(isNew?0xd5b386:0xa8ccbf):retained?0x8cae9e:0x43546b);edge.material.opacity=current?.95:retained?.65:.24;});
    outside.visible=isNew&&p>.85;
    traveler.material.color.set(isNew?0xe2bc86:0xd6f2ef);
-   if(p===1&&isNew)traveler.position.x+=Math.sin(t*2.2)*.05;
+   const stoppedAge=Math.max(0,age-(isNew&&mode==='auto'?4.2:0)-2.5);
+   const failure=isNew&&p===1;
+   const blink=ruleReduced?0:failure&&stoppedAge<1.1?Math.pow(Math.sin(stoppedAge*9),2):0;
+   nodes[6].material.transparent=true;nodes[6].material.opacity=failure?.28+blink*.72:1;
+   traveler.material.transparent=true;traveler.material.opacity=failure?Math.max(.12,1-stoppedAge*1.1):1;
+   answerHalo.material.opacity=knownDone?.48:0;answerHalo.scale.setScalar(knownDone?1+Math.min(.3,Math.max(0,age-2.5)*.12):1);
+   stopHalo.material.opacity=failure?blink*.6:0;
    success.material.opacity=knownDone?1:.2;dead.material.opacity=isNew&&p===1?1:.2;
    INTERACT.rulePhase=isNew?(p===1?'new-stop':'new-travel'):(p===1?'known-done':'known-travel');
   };

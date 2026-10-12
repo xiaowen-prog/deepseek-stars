@@ -1,6 +1,6 @@
 import {VISUAL} from './visual-palette.js';
 /** Rich milestone object builders — each metaphor is felt through motion. */
-export function createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INTERACT, uniforms, FOG, makeWhale }) {
+export function createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INTERACT, uniforms, FOG, makeWhale, STORY, REDUCED }) {
   const addGlowPts = (g, n, spread, col, size = 0.08) => {
     const pos = [], c = [];
     const color = new THREE.Color(col);
@@ -277,60 +277,42 @@ export function createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INT
       return g;
     },
 
-    // 06 Backprop — error pulses reverse through layers; cheque digit ignites
+    // Backprop: prediction flows forward, then error returns on the same edges.
     (c) => {
-      const g = new THREE.Group();
-      const layers = [7, 9, 7, 5, 3];
-      const nodes = [];
-      layers.forEach((n, li) => {
-        for (let i = 0; i < n; i++) {
-          const nd = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), rimMat(VISUAL.violet, 1.2, 0.8));
-          nd.position.set(li * 1.65 - 3.0, (i - (n - 1) / 2) * 0.52, 0);
-          g.add(nd); nodes.push(nd);
-        }
+      const g=new THREE.Group(),counts=[5,7,7,5,3],layers=[],edges=[],packets=[];
+      const blue=new THREE.Color(VISUAL.cyan),warm=new THREE.Color(VISUAL.amber);
+      counts.forEach((n,li)=>{
+        const row=[];
+        for(let j=0;j<n;j++){
+          const node=new THREE.Mesh(new THREE.SphereGeometry(.105,16,12),new THREE.MeshBasicMaterial({color:VISUAL.blue,transparent:true,opacity:.38}));
+          node.position.set(li*1.55-3.1,(j-(n-1)/2)*.55,0);g.add(node);row.push(node);
+        }layers.push(row);
       });
-      const segs = [];
-      for (let li = 0; li < layers.length - 1; li++) {
-        for (let a = 0; a < layers[li]; a += 1) for (let b = 0; b < layers[li + 1]; b += 1) {
-          if ((a * 3 + b) % 4 !== 0) continue;
-          segs.push(
-            V3(li * 1.65 - 3.0, (a - (layers[li] - 1) / 2) * 0.52, 0),
-            V3((li + 1) * 1.65 - 3.0, (b - (layers[li + 1] - 1) / 2) * 0.52, 0),
-          );
-        }
+      for(let li=0;li<4;li++)for(let a=0;a<counts[li];a++)for(let b=0;b<counts[li+1];b++){
+        if((a*3+b)%3!==0&&b!==a%counts[li+1])continue;
+        const from=layers[li][a].position,to=layers[li+1][b].position;
+        const wire=new THREE.Line(new THREE.BufferGeometry().setFromPoints([from,to]),lineMat(VISUAL.blue,.2));g.add(wire);edges.push({wire,li,from,to});
+        if((a+b)%2===0){const point=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),new THREE.MeshBasicMaterial({color:VISUAL.cyan}));g.add(point);packets.push({point,li,from,to});}
       }
-      g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(segs), lineMat(VISUAL.violet, 0.2)));
-      const pulses = [];
-      for (let i = 0; i < 28; i++) {
-        const p = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), new THREE.MeshBasicMaterial({ color: VISUAL.ink }));
-        g.add(p); pulses.push(p);
-      }
-      // cheque
-      const cheque = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.2), rimMat(0xe8f0ff, 2, 0.15, 0.5));
-      cheque.position.set(4.4, 0, 0); g.add(cheque);
-      const digit = new THREE.Group();
-      // seven-ish strokes for "5"
-      [[0, 0.35, 0.7, 0.08], [-0.35, 0.1, 0.08, 0.4], [0, 0, 0.7, 0.08], [0.35, -0.2, 0.08, 0.4], [0, -0.4, 0.7, 0.08]].forEach(([x, y, w, h]) => {
-        const s = new THREE.Mesh(new THREE.PlaneGeometry(w, h), rimMat(VISUAL.violet, 1, 1.5));
-        s.position.set(x, y, 0.02); digit.add(s);
-      });
-      digit.position.copy(cheque.position); g.add(digit);
-      g.userData.update = (t, l) => {
-        pulses.forEach((p, i) => {
-          const u = 1 - ((t * 0.4 + i / 28) % 1); // reverse
-          const li = u * (layers.length - 1);
-          p.position.set(li * 1.65 - 3.0, Math.sin(i * 1.7 + t) * 1.4 * Math.sin(u * Math.PI), 0);
-          p.visible = l > 0.1;
-          p.scale.setScalar(0.7 + l * 0.8);
+      let entered=null;g.userData.base=.92;
+      g.userData.update=(t,l)=>{
+        if(STORY.seg<4.5||STORY.seg>5.5){entered=null;return;}
+        if(entered===null)entered=t;
+        const phase=REDUCED?6.7:(t-entered)%9;
+        const forward=phase<3.0,reverse=phase>=3.65&&phase<6.85;
+        const head=forward?Math.min(4,phase/3*4):reverse?4-(phase-3.65)/3.2*4:phase<3.65?4:0;
+        const color=phase>=3?warm:blue;
+        layers.forEach((row,li)=>row.forEach(node=>{
+          const hit=Math.exp(-Math.pow((li-head)/.65,2));
+          node.material.color.copy(color);node.material.opacity=.26+hit*.74;
+          node.scale.setScalar(1+hit*.18);
+        }));
+        edges.forEach(({wire,li})=>{const hit=Math.exp(-Math.pow((li+.5-head)/.65,2));wire.material.color.copy(color);wire.material.opacity=.1+hit*.55;});
+        packets.forEach(({point,li,from,to})=>{
+          const u=head-li;point.visible=!REDUCED&&(forward||reverse)&&u>=0&&u<=1;
+          if(point.visible){point.position.lerpVectors(from,to,u);point.material.color.copy(color);}
         });
-        nodes.forEach((nd, i) => {
-          nd.material.uniforms.uGain.value = 0.3 + l * (0.5 + 0.5 * Math.sin(t * 3 - i * 0.2));
-        });
-        const lit = THREE.MathUtils.smoothstep(l, 0.4, 0.9);
-        digit.children.forEach((s, i) => { s.material.uniforms.uGain.value = lit * (1 + 0.5 * Math.sin(t * 5 + i)); });
-        cheque.material.uniforms.uGain.value = 0.3 + lit;
-      };
-      return g;
+      };return g;
     },
 
     // 05 Winter II — rule-box tower (readable stack); at the peak the top third topples (bubble bursts)
@@ -474,9 +456,9 @@ export function createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INT
 
     // 09 AlexNet — CNN layers explode with rising "accuracy" ring
     (c) => {
-      const g = new THREE.Group();
+      const g = new THREE.Group();g.userData.base=.88;
       const layers = [];
-      const sizes = MOBILE ? [28, 18, 12, 7, 3] : [36, 24, 16, 10, 5];
+      const sizes = MOBILE ? [28, 18, 12, 7, 3] : [30, 22, 15, 9, 5];
       sizes.forEach((n, li) => {
         const pos = [], col = []; const span = 5.4 - li * 0.95;
         for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
@@ -487,31 +469,33 @@ export function createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INT
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-        const p = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.09 + li * 0.035, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+        const p = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.075 + li * 0.025, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
         p.position.z = 3.0 - li * 1.4;
         const fr = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(span + 0.35, span + 0.35)), lineMat(c, 0.28));
         fr.position.z = p.position.z;
         g.add(p, fr); layers.push({ p, fr, z0: p.position.z, span });
       });
-      // accuracy arc
-      const acc = new THREE.Mesh(new THREE.TorusGeometry(2.8, 0.06, 8, 64, 0), rimMat(0x5fe0ff, 1, 1.5));
-      acc.rotation.x = Math.PI / 2; acc.position.z = -2; g.add(acc);
-      const label = addGlowPts(g, MOBILE?100:220, [1.4, 1.4, 0.4], 0xffffff, 0.065);
-      addGlowPts(g, MOBILE?150:420, [7, 7, 5], c, 0.04);
-      label.position.z = -2;
+      const output=new THREE.Mesh(new THREE.IcosahedronGeometry(.16,2),new THREE.MeshBasicMaterial({color:VISUAL.amber,transparent:true,opacity:0}));
+      output.position.z=-4.4;g.add(output);let entered=null;
       g.rotation.y = 0.55;
       g.userData.update = (t, l) => {
-        const burst = THREE.MathUtils.smoothstep(l, 0.2, 0.95);
-        layers.forEach((ly, i) => {
-          ly.p.position.z = ly.z0 * (0.45 + burst * 0.7);
+        if(STORY.seg<8.5||STORY.seg>9.55){entered=null;return;}
+        if(entered===null)entered=t;
+        const age=REDUCED?5.5:(t-entered)%8.5;
+        const burst=THREE.MathUtils.smoothstep(l,.2,.95);
+        const head=age/1.05;
+        layers.forEach((ly,i)=>{
+          const reached=THREE.MathUtils.smoothstep(age,i*.85,i*.85+.6);
+          const active=Math.exp(-Math.pow((head-i)/.62,2));
+          ly.p.position.z=ly.z0*(.45+burst*.7);
           ly.fr.position.copy(ly.p.position);
-          ly.p.material.opacity = Math.min(1, (0.35 + burst * 0.65) * 1.3) * (1 + 0.25 * Math.exp(-Math.pow((burst - 0.6) / 0.12, 2))); /* DC+: +30%, arrival pulse */
-          ly.p.rotation.z = Math.sin(t * 0.3 + i) * 0.05 * burst;
+          ly.p.material.opacity=.12+reached*.22+active*.56;
+          ly.fr.material.opacity=.12+reached*.12+active*.34;
+          ly.p.rotation.z=0;
           ly.fr.rotation.copy(ly.p.rotation);ly.fr.scale.copy(ly.p.scale);
         });
-        // torus length via scale hack — expand accuracy
-        acc.scale.setScalar((0.5 + burst * 1.1) * 1.2);
-        acc.material.uniforms.uGain.value = 0.4 + burst * 1.5;
+        output.material.opacity=THREE.MathUtils.smoothstep(age,4.5,5.2);
+        output.scale.setScalar(1+Math.max(0,1-Math.abs(age-5.2))*.6);
         g.rotation.y = 0.55 + Math.sin(t * 0.2) * 0.1;
       };
       return g;

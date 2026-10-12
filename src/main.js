@@ -6,12 +6,12 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { MILESTONES, PLATES } from './data.js';
-import { createBuilders } from './objects.js';
-import { reviseBuilders } from './revised-scenes.js';
+import { createBuilders } from './objects.js?v=15.1';
+import { reviseBuilders } from './revised-scenes.js?v=16';
 import { createSceneUI } from './scene-ui.js';
 import { grokBuilders } from './grok-scenes.js';
 import { createOpening } from '../modules/bookends/opening.js';
-import { createEnding } from '../modules/bookends/ending.js';
+import { createEnding } from '../modules/bookends/ending.js?v=16';
 import { CONFIG } from '../modules/bookends/config.js';
 
 const CDN = {
@@ -78,7 +78,7 @@ const CAM = [
   V3(0, -23.4, -130),
   V3(16, -27.4, -150),  // look +X at winter grid
   V3(40, -27.4, -150),
-  V3(70, -8, -158),     // rise early toward Deep Blue so 1987→1997 lerp never looks into void
+  V3(64, -27.4, -150), // face the rule tree; rise only during the Deep Blue handoff
   V3(76, 13, -156),     // look down onto the placed king and board
   V3(76, -5.4, -188),
   V3(76, -29.4, -268),
@@ -347,7 +347,7 @@ function makeWhale(color, countScale = 1) {
 /* ---------- symbolic builders (12) ---------- */
 const STORY = { seg: 0 };
 const builders = grokBuilders(
-  reviseBuilders(createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INTERACT, uniforms, FOG, makeWhale }), {THREE, INTERACT, MOBILE, REDUCED, STORY, camera}),
+  reviseBuilders(createBuilders({ THREE, rimMat, lineMat, pillar, V3, MOBILE, INTERACT, uniforms, FOG, makeWhale, STORY, REDUCED }), {THREE, INTERACT, MOBILE, REDUCED, STORY, camera}),
   { THREE, INTERACT, MOBILE, REDUCED, STORY, camera, scene });
 
 const stations = [];
@@ -390,7 +390,7 @@ MILESTONES.forEach((m, i) => {
     new THREE.MeshBasicMaterial({ color: m.color, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   ring.rotation.x = Math.PI / 2; ring.position.y = -1.6; root.add(ring);
-  if ([1,2,4,7,8,10,11].includes(k)) { pil.visible=false; fl.visible=false; halo.visible=false; ring.visible=false; }
+  if ([1,2,4,5,6,7,8,9,10,11].includes(k)) { pil.visible=false; fl.visible=false; halo.visible=false; ring.visible=false; }
   scene.add(root);
   stations.push({ k, root, obj, pil, fl, act: m.act, halo, ring });
 });
@@ -555,13 +555,13 @@ const snowMat = new THREE.ShaderMaterial({
     void main(){ vec3 p=position; p.y+=mod(uTime*(.12+aR*.28),6.)-3.; p.x+=sin(uTime*.25+aR*30.)*.35;
       vec4 mv=modelViewMatrix*vec4(p,1.); vD=-mv.z; gl_Position=projectionMatrix*mv;
       gl_PointSize=(.55+aR*1.5)*uPx*(28./max(vD,1.))*(1.+uVel*2.2); }`,
-  fragmentShader: `${FOG} varying float vD; void main(){ vec2 q=gl_PointCoord-.5; float a=smoothstep(.5,0.,length(q)); gl_FragColor=vec4(vec3(.7,.82,1.)*a*.62*fogF(vD*.75),1.); }`,
+  fragmentShader: `${FOG} varying float vD; void main(){ vec2 q=gl_PointCoord-.5; float a=smoothstep(.5,0.,length(q)); gl_FragColor=vec4(vec3(.7,.82,1.)*a*.28*fogF(vD*.75),1.); }`,
 });
 scene.add(new THREE.Points(snowGeo, snowMat));
 for (let i = 0; i < 28; i++) {
   const p = pillar(0x9fb7ff, 95 + Math.random() * 40, 0.28, 1.35 + Math.random() * 0.5);
   p.position.set(30 + (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 28), -40 - Math.random() * 45, -Math.random() * 420);
-  p.material.uniforms.uI.value = 0.55 + Math.random() * 0.45; scene.add(p);
+  p.material.uniforms.uI.value = 0.16 + Math.random() * 0.12; scene.add(p);
 }
 const surf = new THREE.Mesh(new THREE.PlaneGeometry(220, 220), new THREE.MeshBasicMaterial({ color: 0x2a4a7a, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false }));
 surf.rotation.x = Math.PI / 2; surf.position.set(0, 7, -40); scene.add(surf);
@@ -1070,11 +1070,11 @@ function tick(t) {
     if (s.obj.userData.update) s.obj.userData.update(REDUCED ? 0 : t, REDUCED ? (Math.round(l) || l) : l);
     // P0 overexposure: pillars are backdrop only — never wash the subject
     const pilMax = s.k === N ? 0.12 : s.act === 'winter' ? 0.14 : 0.18;
-    s.pil.material.uniforms.uI.value = 0.05 + l * pilMax;
+    s.pil.material.uniforms.uI.value = 0.015 + l * pilMax * .45;
     if (s.act === 'winter' && s.k !== 4 && s.obj.children) s.obj.traverse(ch=>{ if(ch.material?.uniforms?.uGain) ch.material.uniforms.uGain.value=0.45+l*0.45; if(ch.material?.opacity!=null && ch.isPoints) ch.material.opacity=0.35+l*0.3; });
     s.fl.material.uniforms.uI.value = 0.08 + l * 0.22;
-    if (s.halo?.material?.uniforms?.uI) s.halo.material.uniforms.uI.value = 0.12 + l * 0.3;
-    if (s.ring) { s.ring.material.opacity = 0.06 + l * 0.18; s.ring.rotation.z = (REDUCED ? 0 : t) * 0.15; s.ring.scale.setScalar(0.85 + l * 0.35); }
+    if (s.halo?.material?.uniforms?.uI) s.halo.material.uniforms.uI.value = 0.035 + l * 0.12;
+    if (s.ring) { s.ring.material.opacity = 0.025 + l * 0.08; s.ring.rotation.z = (REDUCED ? 0 : t) * 0.15; s.ring.scale.setScalar(0.72 + l * 0.12); }
     s.root.visible = Math.abs(seg - s.k) < 1.1;
     // The AlexNet scene must never be translated onto the Go board.
     if (s.k === 9) s.root.visible = seg >= 8.84 && seg < 9.48; // after the chip-evolution dive
