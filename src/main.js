@@ -183,7 +183,7 @@ document.body.style.minHeight = document.getElementById('scroll').style.height;
 const canvas = document.getElementById('gl');
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 } catch (e) {
   document.documentElement.classList.add('static');
   document.getElementById('loader')?.remove();
@@ -191,7 +191,9 @@ try {
   throw e;
 }
 const MOBILE = matchMedia('(max-width: 760px)').matches || matchMedia('(pointer: coarse)').matches;
-let DPR = Math.min(devicePixelRatio, MOBILE ? 1.25 : 1.5);
+// Keep readable geometry at device resolution; lower particle work before resolution.
+const BASE_DPR = Math.min(devicePixelRatio || 1, MOBILE ? 1.75 : 2);
+let DPR = BASE_DPR;
 renderer.setPixelRatio(DPR);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
@@ -588,9 +590,11 @@ surf.rotation.x = Math.PI / 2; surf.position.set(0, 7, -40); scene.add(surf);
 }
 
 /* ---------- post ---------- */
-const composer = new EffectComposer(renderer);
+const storyTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+storyTarget.samples = MOBILE ? 2 : 4;
+const composer = new EffectComposer(renderer, storyTarget);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.6, 0.38, 0.55);
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.18, 0.85);
 composer.addPass(bloom);
 const grade = new ShaderPass({
   uniforms: {
@@ -604,15 +608,15 @@ const grade = new ShaderPass({
       for(int k=0;k<16;k++){ if(k==i) return m[k]/16.; } return 0.; }
     float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uTime)*43758.5453); }
     void main(){
-      vec2 c=vUv-.5; float ca=.0022*length(c)*2.2;
+      vec2 c=vUv-.5; float ca=.00015*uOpen*length(c);
       vec3 col=vec3(texture2D(tDiffuse,vUv+c*ca).r, texture2D(tDiffuse,vUv).g, texture2D(tDiffuse,vUv-c*ca).b);
       // soft teal lift (Atmos) + deep crush
       col=mix(col, col*vec3(.92,.96,1.08), .28);
       col=pow(max(col,0.), vec3(.92));
       // film grain + dither (ASTRODITHER punch during opening)
       vec2 px=vUv*uRes;
-      float dith=.022 + uOpen*.045;
-      float grain=.032 + uOpen*.05;
+      float dith=uOpen*.008;
+      float grain=.003 + uOpen*.008;
       col+=(bayer(px*.5)-.5)*dith+(h(px)-.5)*grain;
       // open-phase fluid chroma fringe
       float caOpen=ca*(1.+uOpen*2.4);
@@ -621,14 +625,14 @@ const grade = new ShaderPass({
         col=mix(col, fr, uOpen*.55);
       }
       // depth haze wash
-      float haze=smoothstep(0.,1.,uDepth)*.18;
+      float haze=smoothstep(0.,1.,uDepth)*.06;
       col=mix(col, vec3(.04,.08,.16), haze);
       float gray=dot(col,vec3(.299,.587,.114));
       vec2 m=(vUv-uMouse)*vec2(uRes.x/uRes.y,1.); float torch=smoothstep(.32,.04,length(m));
       vec3 cold=vec3(gray)*vec3(.4,.44,.52);
       col=mix(col, mix(cold*.28, vec3(gray)*vec3(.85,.93,1.18)*1.5, torch), uWinter);
       // cinematic vignette
-      col*=1.-dot(c,c)*1.15;
+      col*=1.-dot(c,c)*.55;
       // subtle letterbox breath
       float letter=smoothstep(.0,.04,vUv.y)*smoothstep(1.,.96,vUv.y);
       col*=.88+.12*letter;
@@ -700,7 +704,7 @@ function resize() {
   W = innerWidth; H = innerHeight; narrow = W <= 760;
   renderer.setSize(W, H, false); composer.setSize(W, H);
   renderer.setPixelRatio(DPR); composer.setPixelRatio(DPR);
-  bloom.resolution.set(W / 2, H / 2);
+  // Composer owns the bloom target sizes, including pixel ratio.
   grade.uniforms.uRes.value.set(W * DPR, H * DPR);
   camera.aspect = W / H; camera.updateProjectionMatrix();
   const px = DPR * H / 900;
@@ -1227,10 +1231,10 @@ function tick(t) {
 
   // winter flashlight + friction
   const winter = THREE.MathUtils.clamp(1 - Math.min(Math.abs(seg - 4), Math.abs(seg - 5), Math.abs(seg - 6)) / 0.9, 0, 1);
-  grade.uniforms.uWinter.value = winter * (on === 6 ? .22 : on === 4 ? .35 : 1);
+  grade.uniforms.uWinter.value = winter * (on === 6 ? .18 : on === 4 ? .28 : .08);
   grade.uniforms.uMouse.value.set(INTERACT.mx, 1 - INTERACT.my);
   if (lenis && lenis.options) lenis.options.lerp = 0.1 - 0.04 * winter;
-  document.documentElement.classList.toggle('winter', winter > 0.45 && on !== 6);
+  document.documentElement.classList.toggle('winter', winter > 0.45 && on === 4);
 
   // holds
   const now = performance.now();
@@ -1281,7 +1285,7 @@ function tick(t) {
     pil.material.uniforms.uI.value = OPEN.pillars * (0.25 + breath * 0.55) * (1 - away * 0.85);
   });
   // bloom: punch then drop; while assembling (form rising) hard-cap ≤1.1 so silhouette never blows out
-  const bloomRest = 0.5;
+  const bloomRest = 0.22;
   let bStr = inOpen ? OPEN.bloom : THREE.MathUtils.lerp(OPEN.bloom, bloomRest, Math.min(1, seg * 1.6));
   if (inOpen && OPEN.form > 0.08 && OPEN.form < 0.99) bStr = Math.min(bStr, 1.1);
   if (inOpen && OPEN.form >= 0.99) bStr = Math.min(bStr, 1.12);
@@ -1417,10 +1421,12 @@ function applyTier2() {
 }
 if (QS.has('lowperf')) setTimeout(() => { downgraded = true; PERF_TIER = 1; applyTier2(); }, 0);
 function perf(now) {
-  const d = now - last; last = now; acc += d; cnt++;
+  const d = now - last; last = now;
+  if (document.hidden || bookOpening?.active || d > 120) { acc = 0; cnt = 0; return; }
+  acc += d; cnt++;
   if (acc > 2500) {
     const avg = acc / cnt; acc = cnt = 0;
-    if (avg > 24 && !downgraded) { downgraded = true; PERF_TIER = 1; DPR = Math.max(0.75, DPR * 0.7); bloom.strength = Math.min(bloom.strength, 0.45); resize(); }
+    if (avg > 24 && !downgraded) { downgraded = true; PERF_TIER = 1; DPR = Math.min(BASE_DPR, Math.max(1.25, BASE_DPR * .85)); bloom.strength = Math.min(bloom.strength, 0.45); resize(); }
     else if (avg > 24 && PERF_TIER === 1 && ++slowAfter >= 2) applyTier2(); /* DC#8: second tier if still slow after DPR drop */
   }
 }

@@ -1,0 +1,213 @@
+--- a/src/main.js
++++ b/src/main.js
+@@ -183,7 +183,7 @@
+ const canvas = document.getElementById('gl');
+ let renderer;
+ try {
+-  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
++  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+ } catch (e) {
+   document.documentElement.classList.add('static');
+   document.getElementById('loader')?.remove();
+@@ -191,7 +191,9 @@
+   throw e;
+ }
+ const MOBILE = matchMedia('(max-width: 760px)').matches || matchMedia('(pointer: coarse)').matches;
+-let DPR = Math.min(devicePixelRatio, MOBILE ? 1.25 : 1.5);
++// Keep readable geometry at device resolution; lower particle work before resolution.
++const BASE_DPR = Math.min(devicePixelRatio || 1, MOBILE ? 1.75 : 2);
++let DPR = BASE_DPR;
+ renderer.setPixelRatio(DPR);
+ renderer.toneMapping = THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure = 0.92;
+@@ -588,9 +590,11 @@
+ }
+ 
+ /* ---------- post ---------- */
+-const composer = new EffectComposer(renderer);
++const storyTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
++storyTarget.samples = MOBILE ? 2 : 4;
++const composer = new EffectComposer(renderer, storyTarget);
+ composer.addPass(new RenderPass(scene, camera));
+-const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.6, 0.38, 0.55);
++const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.18, 0.85);
+ composer.addPass(bloom);
+ const grade = new ShaderPass({
+   uniforms: {
+@@ -604,15 +608,15 @@
+       for(int k=0;k<16;k++){ if(k==i) return m[k]/16.; } return 0.; }
+     float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uTime)*43758.5453); }
+     void main(){
+-      vec2 c=vUv-.5; float ca=.0022*length(c)*2.2;
++      vec2 c=vUv-.5; float ca=.00015*uOpen*length(c);
+       vec3 col=vec3(texture2D(tDiffuse,vUv+c*ca).r, texture2D(tDiffuse,vUv).g, texture2D(tDiffuse,vUv-c*ca).b);
+       // soft teal lift (Atmos) + deep crush
+       col=mix(col, col*vec3(.92,.96,1.08), .28);
+       col=pow(max(col,0.), vec3(.92));
+       // film grain + dither (ASTRODITHER punch during opening)
+       vec2 px=vUv*uRes;
+-      float dith=.022 + uOpen*.045;
+-      float grain=.032 + uOpen*.05;
++      float dith=uOpen*.008;
++      float grain=.003 + uOpen*.008;
+       col+=(bayer(px*.5)-.5)*dith+(h(px)-.5)*grain;
+       // open-phase fluid chroma fringe
+       float caOpen=ca*(1.+uOpen*2.4);
+@@ -621,14 +625,14 @@
+         col=mix(col, fr, uOpen*.55);
+       }
+       // depth haze wash
+-      float haze=smoothstep(0.,1.,uDepth)*.18;
++      float haze=smoothstep(0.,1.,uDepth)*.06;
+       col=mix(col, vec3(.04,.08,.16), haze);
+       float gray=dot(col,vec3(.299,.587,.114));
+       vec2 m=(vUv-uMouse)*vec2(uRes.x/uRes.y,1.); float torch=smoothstep(.32,.04,length(m));
+       vec3 cold=vec3(gray)*vec3(.4,.44,.52);
+       col=mix(col, mix(cold*.28, vec3(gray)*vec3(.85,.93,1.18)*1.5, torch), uWinter);
+       // cinematic vignette
+-      col*=1.-dot(c,c)*1.15;
++      col*=1.-dot(c,c)*.55;
+       // subtle letterbox breath
+       float letter=smoothstep(.0,.04,vUv.y)*smoothstep(1.,.96,vUv.y);
+       col*=.88+.12*letter;
+@@ -700,7 +704,7 @@
+   W = innerWidth; H = innerHeight; narrow = W <= 760;
+   renderer.setSize(W, H, false); composer.setSize(W, H);
+   renderer.setPixelRatio(DPR); composer.setPixelRatio(DPR);
+-  bloom.resolution.set(W / 2, H / 2);
++  // Composer owns the bloom target sizes, including pixel ratio.
+   grade.uniforms.uRes.value.set(W * DPR, H * DPR);
+   camera.aspect = W / H; camera.updateProjectionMatrix();
+   const px = DPR * H / 900;
+@@ -1227,10 +1231,10 @@
+ 
+   // winter flashlight + friction
+   const winter = THREE.MathUtils.clamp(1 - Math.min(Math.abs(seg - 4), Math.abs(seg - 5), Math.abs(seg - 6)) / 0.9, 0, 1);
+-  grade.uniforms.uWinter.value = winter * (on === 6 ? .22 : on === 4 ? .35 : 1);
++  grade.uniforms.uWinter.value = winter * (on === 6 ? .18 : on === 4 ? .28 : .08);
+   grade.uniforms.uMouse.value.set(INTERACT.mx, 1 - INTERACT.my);
+   if (lenis && lenis.options) lenis.options.lerp = 0.1 - 0.04 * winter;
+-  document.documentElement.classList.toggle('winter', winter > 0.45 && on !== 6);
++  document.documentElement.classList.toggle('winter', winter > 0.45 && on === 4);
+ 
+   // holds
+   const now = performance.now();
+@@ -1281,7 +1285,7 @@
+     pil.material.uniforms.uI.value = OPEN.pillars * (0.25 + breath * 0.55) * (1 - away * 0.85);
+   });
+   // bloom: punch then drop; while assembling (form rising) hard-cap ≤1.1 so silhouette never blows out
+-  const bloomRest = 0.5;
++  const bloomRest = 0.22;
+   let bStr = inOpen ? OPEN.bloom : THREE.MathUtils.lerp(OPEN.bloom, bloomRest, Math.min(1, seg * 1.6));
+   if (inOpen && OPEN.form > 0.08 && OPEN.form < 0.99) bStr = Math.min(bStr, 1.1);
+   if (inOpen && OPEN.form >= 0.99) bStr = Math.min(bStr, 1.12);
+@@ -1417,10 +1421,12 @@
+ }
+ if (QS.has('lowperf')) setTimeout(() => { downgraded = true; PERF_TIER = 1; applyTier2(); }, 0);
+ function perf(now) {
+-  const d = now - last; last = now; acc += d; cnt++;
++  const d = now - last; last = now;
++  if (document.hidden || bookOpening?.active || d > 120) { acc = 0; cnt = 0; return; }
++  acc += d; cnt++;
+   if (acc > 2500) {
+     const avg = acc / cnt; acc = cnt = 0;
+-    if (avg > 24 && !downgraded) { downgraded = true; PERF_TIER = 1; DPR = Math.max(0.75, DPR * 0.7); bloom.strength = Math.min(bloom.strength, 0.45); resize(); }
++    if (avg > 24 && !downgraded) { downgraded = true; PERF_TIER = 1; DPR = Math.min(BASE_DPR, Math.max(1.25, BASE_DPR * .85)); bloom.strength = Math.min(bloom.strength, 0.45); resize(); }
+     else if (avg > 24 && PERF_TIER === 1 && ++slowAfter >= 2) applyTier2(); /* DC#8: second tier if still slow after DPR drop */
+   }
+ }
+--- a/src/grok-scenes.js
++++ b/src/grok-scenes.js
+@@ -137,9 +137,9 @@
+   };
+   /* ---------------- 2022 · 一个光标 → 文字之海 → 两个月，一亿人 ---------------- */
+   builders[10] = () => {
+-    const g=new THREE.Group(),cv=document.createElement('canvas');cv.width=1024;cv.height=720;const ctx=cv.getContext('2d');
+-    const texture=new THREE.CanvasTexture(cv);texture.colorSpace=THREE.SRGBColorSpace;
+-    const mat=new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false});const chat=new THREE.Mesh(new THREE.PlaneGeometry(MOBILE?9.5:8,MOBILE?6.68:5.625),mat);g.add(chat);
++    const g=new THREE.Group(),cv=document.createElement('canvas');cv.width=2048;cv.height=1440;const ctx=cv.getContext('2d');ctx.scale(2,2);
++    const texture=new THREE.CanvasTexture(cv);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
++    const mat=new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,toneMapped:false});const chat=new THREE.Mesh(new THREE.PlaneGeometry(MOBILE?9.5:8,MOBILE?6.68:5.625),mat);g.add(chat);
+     const prompt='你好，你能和我聊聊吗？',answer='当然。你可以提出问题、分享想法，或和我一起探索一个新的方向。';let start=null,lastKey='',lastReplay=-1;
+     const box=(x,y,w,h,fill,edge)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,12);ctx.fillStyle=fill;ctx.fill();if(edge){ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.stroke();}};
+     const paint=(p,a,blink)=>{
+--- a/src/visual-system.css
++++ b/src/visual-system.css
+@@ -1,7 +1,7 @@
+ /* V7: one visual system for opening, twelve scenes, navigation and finale. */
+ :root{
+- --ink:#dce7f5;--dim:#96a7c0;--mute:#71849f;--blue:#8aa8e8;--blue-soft:#8aa8e833;
+- --amber:#d5b386;--surface:#0a1425eb;--edge:#8ea9ce33;--edge-active:#9cbcf277;
++ --ink:#e5edf8;--dim:#a7b6ca;--mute:#8b9cb4;--blue:#8aa8e8;--blue-soft:#8aa8e833;
++ --amber:#d5b386;--surface:#0c1525f7;--edge:#8ea9ce47;--edge-active:#9cbcf288;
+  --radius:6px;--shadow:0 16px 46px #02061166;--motion:.25s cubic-bezier(.2,.7,.2,1);
+ }
+ .card,.person-dialog,.chapters,.rail-cur,.ending-gate{
+@@ -84,3 +84,56 @@
+   .hint .lbl{font-size:11px;letter-spacing:.06em;white-space:nowrap}
+   .hint small{font-size:9px;letter-spacing:.02em;white-space:nowrap}
+ }
++
++/* V14 clarity contract: atmosphere belongs to the scene, text stays crisp. */
++:root{
++ --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-6:24px;--space-8:32px;
++ --type-caption:12px;--type-body:15px;--type-title:24px;--line-body:1.8;
++}
++html{font-synthesis:none}
++.mono{font-weight:400}
++#grain,html.opening #grain{opacity:.045}
++#vignette{opacity:.55}
++h1,.slogan-cn,.card .yr,.card h3,.person-dialog h2{text-shadow:none}
++.card,.person-dialog,.chapters,.rail-cur,.ending-gate{
++ background:var(--surface);border:1px solid var(--edge);border-radius:var(--radius);
++ backdrop-filter:none;-webkit-backdrop-filter:none;
++ box-shadow:0 12px 32px #02061140;
++}
++.card{padding:24px;max-height:calc(100dvh - 120px);overflow-y:auto;overscroll-behavior:contain}
++.card .no{font:400 11px/1.6 var(--mono);letter-spacing:.12em;color:var(--dim)}
++.card .yr{font-size:clamp(48px,4.5vw,64px);line-height:1.05;margin:12px 0 8px}
++.card h3{font:400 var(--type-title)/1.4 var(--serif);letter-spacing:.05em;margin-bottom:20px}
++.card blockquote{font:400 18px/1.8 var(--serif);color:var(--ink);letter-spacing:.02em}
++.card .fact{font:400 var(--type-body)/var(--line-body) var(--sans);color:#c0ccdd;margin-top:16px}
++.card .src{font:400 11px/1.7 var(--sans);letter-spacing:.02em;margin-top:16px}
++.card .src a{color:var(--dim)}
++.card[data-act="winter"]{-webkit-mask-image:none;mask-image:none;background:var(--surface);border-color:var(--edge)}
++.card[data-act="winter"] .yr{color:var(--ink)}
++html.go-still .card.on{opacity:1!important}
++.scene-controls{margin-top:20px;padding-top:16px}
++.scene-controls button,.hint,.ds-bookend-skip,.ds-bookend-replay,.ending-gate button{
++ font-weight:400;letter-spacing:.03em;min-height:42px;
++}
++.scene-controls button{font-size:12px}
++.control-note,.person-bio,.rule-status,.go-status{font-size:12px;line-height:1.8}
++.person-note{font-size:11px;line-height:1.7}
++.person-en,.person-kicker{font-size:11px;letter-spacing:.06em}
++.person-auto .person-bio{font-size:13px;line-height:1.8}
++.person-auto .person-note{font-size:11px}
++.brand-mark{filter:none}
++.brand-en,.brand-cn,.depth,.ch-stage{font-weight:400}
++.ending-description{font-size:14px;line-height:1.8}
++.ending-links a{font-size:14px;min-height:68px}
++.ending-links span{font-size:11px}
++.unified-ending .fine{font-size:11px;color:var(--dim)}
++@media(max-width:760px){
++ .card{padding:18px;max-height:49dvh;overscroll-behavior:contain}
++ .card .yr{font-size:42px}.card h3{font-size:22px;margin-bottom:14px}
++ .card blockquote{font-size:16px;line-height:1.75}
++ .card .fact{font-size:14px;line-height:1.8;margin-top:12px}
++ .card .no,.card .src,.card:has(.scene-controls) .src{font-size:11px}
++ .hint .lbl{font-size:12px}.hint small{font-size:10px}
++ .ending-description{font-size:13px}.ending-links a{font-size:13px}.ending-links span{font-size:11px}
++ .person-dialog.person-auto{padding:14px 16px}
++}
+--- a/modules/bookends/opening.js
++++ b/modules/bookends/opening.js
+@@ -106,7 +106,7 @@
+    root.classList.remove('ds-bookend-done');root.inert=false;},
+   skip:()=>finish('skipped'),get active(){return active;},
+   update:({time})=>render(time),renderIdle:t=>render(t,true),
+-  resize({width,height}){if(composer){composer.setPixelRatio(Math.min(host.renderer.getPixelRatio(),1.5));composer.setSize(width,height);if(bloom)bloom.resolution.set(width/2,height/2);exit.uniforms.aspect.value=width/height;}camera.aspect=width/height;camera.updateProjectionMatrix();},
++  resize({width,height}){if(composer){composer.setPixelRatio(host.renderer.getPixelRatio());composer.setSize(width,height);exit.uniforms.aspect.value=width/height;}camera.aspect=width/height;camera.updateProjectionMatrix();},
+   dispose(){composer?.dispose?.();exit?.material.dispose();removeEventListener('keydown',key);geometry.dispose();material.dispose();streakGeo.dispose();streakMat.dispose();}
+  };
+ }

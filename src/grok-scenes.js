@@ -137,9 +137,9 @@ export function grokBuilders(builders, { THREE, INTERACT, MOBILE, REDUCED, STORY
   };
   /* ---------------- 2022 · 一个光标 → 文字之海 → 两个月，一亿人 ---------------- */
   builders[10] = () => {
-    const g=new THREE.Group(),cv=document.createElement('canvas');cv.width=1024;cv.height=720;const ctx=cv.getContext('2d');
-    const texture=new THREE.CanvasTexture(cv);texture.colorSpace=THREE.SRGBColorSpace;
-    const mat=new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false});const chat=new THREE.Mesh(new THREE.PlaneGeometry(MOBILE?9.5:8,MOBILE?6.68:5.625),mat);g.add(chat);
+    const g=new THREE.Group(),cv=document.createElement('canvas');cv.width=2048;cv.height=1440;const ctx=cv.getContext('2d');ctx.scale(2,2);
+    const texture=new THREE.CanvasTexture(cv);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
+    const mat=new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,toneMapped:false});const chat=new THREE.Mesh(new THREE.PlaneGeometry(MOBILE?9.5:8,MOBILE?6.68:5.625),mat);g.add(chat);
     const prompt='你好，你能和我聊聊吗？',answer='当然。你可以提出问题、分享想法，或和我一起探索一个新的方向。';let start=null,lastKey='',lastReplay=-1;
     const box=(x,y,w,h,fill,edge)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,12);ctx.fillStyle=fill;ctx.fill();if(edge){ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.stroke();}};
     const paint=(p,a,blink)=>{

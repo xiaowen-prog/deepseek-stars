@@ -106,7 +106,7 @@ export function createOpening(host){
    root.classList.remove('ds-bookend-done');root.inert=false;},
   skip:()=>finish('skipped'),get active(){return active;},
   update:({time})=>render(time),renderIdle:t=>render(t,true),
-  resize({width,height}){if(composer){composer.setPixelRatio(Math.min(host.renderer.getPixelRatio(),1.5));composer.setSize(width,height);if(bloom)bloom.resolution.set(width/2,height/2);exit.uniforms.aspect.value=width/height;}camera.aspect=width/height;camera.updateProjectionMatrix();},
+  resize({width,height}){if(composer){composer.setPixelRatio(host.renderer.getPixelRatio());composer.setSize(width,height);exit.uniforms.aspect.value=width/height;}camera.aspect=width/height;camera.updateProjectionMatrix();},
   dispose(){composer?.dispose?.();exit?.material.dispose();removeEventListener('keydown',key);geometry.dispose();material.dispose();streakGeo.dispose();streakMat.dispose();}
  };
 }
